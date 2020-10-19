@@ -41,9 +41,68 @@ public class httpfs {
     // HashMap of header fields
     public static HashMap<String, String> headerFields;
 
+    private ServerSocket serverSocket;
+    private Socket clientSocket;
+    private PrintWriter out;
+    private BufferedReader in;
+
     // ----------------------------------------------------------------------
     // ------------------------------ Methods -------------------------------
     // ----------------------------------------------------------------------
+
+    public void start(int port) throws Exception {
+        // The server (httpfs) needs to have a 'unique' ip address and port number. This 'unique' (ip,port) pair allows for a communication to be established from the client to the server.
+        serverSocket = new ServerSocket(port);
+        clientSocket = serverSocket.accept(); // accept the connection when client requests the socket
+        System.out.println("Connection is made from Client to Server");
+
+        // Data to client
+        out = new PrintWriter(clientSocket.getOutputStream(), true);
+
+        // Data from client
+        in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
+        // body
+        String body = "Hello There INSTAGRAM!";
+
+        // header fields
+        headerFields = new HashMap<String, String>();
+        headerFields.put("Content-Type", "text/html");
+        headerFields.put("Content-Length", Integer.toString(body.length()));
+
+        // version
+        String version = "HTTP/1.0";
+
+        // status code
+        String httpCode = HttpStatusCode.OK.getCode();
+        String httpMessage = HttpStatusCode.OK.getMessage();
+
+        // Formatting HTTP Response:
+        String response = responseString(version, httpCode, httpMessage, headerFields, body);
+
+        // Prepare response
+        out.print(response);
+
+        // flush
+        out.flush();
+
+        String greeting = in.readLine();
+        System.out.println(greeting);
+
+//        if ("hello server".equals(greeting)) {
+//            out.println("hello client");
+//        }
+//        else {
+//            out.println("unrecognised greeting");
+//        }
+    }
+
+    public void stop() throws Exception {
+        in.close();
+        out.close();
+        clientSocket.close();
+        serverSocket.close();
+    }
 
     private static String responseString(String version, String statusCode, String phrase, HashMap<String, String> headerLine, String body){
         // https://github.com/Ra-Ni/COMP-445-LAB-2/blob/master/img/HTTPResp.png
@@ -73,48 +132,59 @@ public class httpfs {
         return httpResponse;
     }
 
+
+
     // ----------------------------------------------------------------------
     // ------------------------------- MAIN ---------------------------------
     // ----------------------------------------------------------------------
 
     public static void main(String[] args )throws Exception {
-        // The server (httpfs) needs to have a 'unique' ip address and port number. This 'unique' (ip,port) pair allows for a communication to be established from the client to the server.
-        ServerSocket s = new ServerSocket(9999); // unique IP Adddress
-        Socket client = s.accept(); // accept the connection when client requests the socket
-        System.out.println("Connection is made from Client to Server");
 
-        // Data from client
-        BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+//        // The server (httpfs) needs to have a 'unique' ip address and port number. This 'unique' (ip,port) pair allows for a communication to be established from the client to the server.
+//        ServerSocket s = new ServerSocket(9999); // unique IP Adddress
+//        Socket client = s.accept(); // accept the connection when client requests the socket
+//        System.out.println("Connection is made from Client to Server");
+//
+//        // Data from client
+//        BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+//
+//        // Data to client
+//        PrintWriter out = new PrintWriter(client.getOutputStream());
+//
+//        // body
+//        String body = "Hello There INSTAGRAM!";
+//
+//        // header fields
+//        headerFields = new HashMap<String, String>();
+//        headerFields.put("Content-Type", "text/html");
+//        headerFields.put("Content-Length", Integer.toString(body.length()));
+//
+//        // version
+//        String version = "HTTP/1.0";
+//
+//        // status code
+//        String httpCode = HttpStatusCode.OK.getCode();
+//        String httpMessage = HttpStatusCode.OK.getMessage();
+//
+//        // Formatting HTTP Response:
+//        String response = responseString(version, httpCode, httpMessage, headerFields, body);
+//
+//        // Prepare response
+//        out.print(response);
+//
+//        // flush
+//        out.flush();
+//
+//        // Waiting for any client to call us
+//        int c;
+//        while((c = in.read()) != -1){
+//            System.out.print((char)c);
+//
+//
+//        }
 
-        // Data to client
-        PrintWriter out = new PrintWriter(client.getOutputStream());
+        httpfs server=new httpfs();
+        server.start(9999);
 
-        // body
-        String body = "Hello There BIATCH!";
-
-        // header fields
-        headerFields = new HashMap<String, String>();
-        headerFields.put("Content-Type", "text/html");
-        headerFields.put("Content-Length", Integer.toString(body.length()));
-
-        // version
-        String version = "HTTP/1.0";
-
-        // status code
-        String httpCode = HttpStatusCode.OK.getCode();
-        String httpMessage = HttpStatusCode.OK.getMessage();
-
-        String response = responseString(version, httpCode, httpMessage, headerFields, body);
-
-        // Prepare response -  formatting HTTP Response:
-        out.print(response);
-
-        // flush
-        out.flush();
-
-        int c;
-        while((c = in.read()) != -1){
-            System.out.print((char)c);
-        }
     }
 }
