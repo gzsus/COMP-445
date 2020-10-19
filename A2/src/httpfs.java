@@ -1,10 +1,11 @@
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.DataOutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 
 public class httpfs {
 
@@ -51,57 +52,60 @@ public class httpfs {
     // ----------------------------------------------------------------------
 
     public void start(int port) throws Exception {
+
         // The server (httpfs) needs to have a 'unique' ip address and port number. This 'unique' (ip,port) pair allows for a communication to be established from the client to the server.
-        serverSocket = new ServerSocket(port);
-        clientSocket = serverSocket.accept(); // accept the connection when client requests the socket
-        System.out.println("Connection is made from Client to Server");
+        serverSocket = new ServerSocket(9999);
 
-        // Data to client
-        out = new PrintWriter(clientSocket.getOutputStream(), true);
 
-        // Data from client
-        in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        while(true){
+            Socket clientSocket = serverSocket.accept(); // accept the connection when client requests the socket
+            clientSocket.setKeepAlive(true);
 
-        // body
-        String body = "Hello There INSTAGRAM!";
+            // Data from client
+            Scanner in = new Scanner(clientSocket.getInputStream());
+            // Data to client
+            DataOutputStream out = new DataOutputStream( clientSocket.getOutputStream() );
 
-        // header fields
-        headerFields = new HashMap<String, String>();
-        headerFields.put("Content-Type", "text/html");
-        headerFields.put("Content-Length", Integer.toString(body.length()));
+            // body
+            String body = "Hello World!";
 
-        // version
-        String version = "HTTP/1.0";
+            // header fields
+            headerFields = new HashMap<String, String>();
+            headerFields.put("Content-Type", "text/html");
+            headerFields.put("Content-Length", Integer.toString(body.length()));
 
-        // status code
-        String httpCode = HttpStatusCode.OK.getCode();
-        String httpMessage = HttpStatusCode.OK.getMessage();
+            // version
+            String version = "HTTP/1.0";
 
-        // Formatting HTTP Response:
-        String response = responseString(version, httpCode, httpMessage, headerFields, body);
+            // status code
+            String httpCode = HttpStatusCode.OK.getCode();
+            String httpMessage = HttpStatusCode.OK.getMessage();
 
-        // Prepare response
-        out.print(response);
+            // Formatting HTTP Response:
+            String response = responseString(version, httpCode, httpMessage, headerFields, body);
 
-        // flush
-        out.flush();
+            String line = "";
+            while (in.hasNextLine()) {
+                line = in.nextLine();
+                System.out.println(line);
 
-        String greeting = in.readLine();
-        System.out.println(greeting);
+                if(line.equals("")){
+                    // Prepare response
+                    out.writeBytes(response);
+                    out.flush();
+                    out.close(); // close stream to finish it off
+                    break;
+                }
+            }
+        }
 
-//        if ("hello server".equals(greeting)) {
-//            out.println("hello client");
-//        }
-//        else {
-//            out.println("unrecognised greeting");
-//        }
     }
 
     public void stop() throws Exception {
-        in.close();
-        out.close();
-        clientSocket.close();
-        serverSocket.close();
+//        in.close();
+//        out.close();
+//        clientSocket.close();
+//        serverSocket.close();
     }
 
     private static String responseString(String version, String statusCode, String phrase, HashMap<String, String> headerLine, String body){
@@ -132,6 +136,16 @@ public class httpfs {
         return httpResponse;
     }
 
+    private String handleRequest(String request){
+        // Split request by space into an array
+        String[] requestArr = request.split("\\s+");
+
+        // Go throught the content of the request
+        for (String item : requestArr) {
+            System.out.println(item);
+        }
+        return "";
+    }
 
 
     // ----------------------------------------------------------------------
@@ -140,51 +154,9 @@ public class httpfs {
 
     public static void main(String[] args )throws Exception {
 
-//        // The server (httpfs) needs to have a 'unique' ip address and port number. This 'unique' (ip,port) pair allows for a communication to be established from the client to the server.
-//        ServerSocket s = new ServerSocket(9999); // unique IP Adddress
-//        Socket client = s.accept(); // accept the connection when client requests the socket
-//        System.out.println("Connection is made from Client to Server");
-//
-//        // Data from client
-//        BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-//
-//        // Data to client
-//        PrintWriter out = new PrintWriter(client.getOutputStream());
-//
-//        // body
-//        String body = "Hello There INSTAGRAM!";
-//
-//        // header fields
-//        headerFields = new HashMap<String, String>();
-//        headerFields.put("Content-Type", "text/html");
-//        headerFields.put("Content-Length", Integer.toString(body.length()));
-//
-//        // version
-//        String version = "HTTP/1.0";
-//
-//        // status code
-//        String httpCode = HttpStatusCode.OK.getCode();
-//        String httpMessage = HttpStatusCode.OK.getMessage();
-//
-//        // Formatting HTTP Response:
-//        String response = responseString(version, httpCode, httpMessage, headerFields, body);
-//
-//        // Prepare response
-//        out.print(response);
-//
-//        // flush
-//        out.flush();
-//
-//        // Waiting for any client to call us
-//        int c;
-//        while((c = in.read()) != -1){
-//            System.out.print((char)c);
-//
-//
-//        }
-
         httpfs server=new httpfs();
         server.start(9999);
+
 
     }
 }
