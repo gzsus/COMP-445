@@ -100,17 +100,18 @@ public class httpfs {
                 // ---------- END OF REQUEST
                 if(request.equals("")){
                 // ---------- START OF RESPONSE
-                    try {
+                    // creating a new file instance
+                    File file = new File(absolutePath + fileName);
 
-                        // creating a new file instance
-                        File file = new File(absolutePath + fileName);
+                    //Check if the file exists
+                    if(file.exists()){
 
-                        if(file.canRead()){
-                            // 1. 200 OK file exists and its readable
-
+                        // sudo chmod 666 hello.txt - can read
+                        if(file.canRead()) {
                             // transform the file to a string
                             body = file_to_string(file);
-                            //System.out.println(body);
+
+                            // 1. 200 OK file exists and its readable
 
                             // status code
                             String httpCode = HttpStatusCode.OK.getCode();
@@ -131,8 +132,8 @@ public class httpfs {
                             out.close(); // close stream to finish it off
                             break;
 
-                        // File NOT Readable
-                        }else if(!file.canRead()){
+                        // sudo chmod 600 hello.txt - cannot read
+                        }else{
                             // 3. 403 Forbidden file is not readable
 
                             body = "";
@@ -155,8 +156,8 @@ public class httpfs {
                             break;
                         }
 
-                    }catch(FileNotFoundException e){
-                        // 2. 404 Not Found file doesnt exist
+                    // 2. 404 Not Found file doesnt exist
+                    }else{
 
                         body = "";
 
@@ -238,6 +239,7 @@ public class httpfs {
 
         httpfs server=new httpfs();
         server.start(9999);
+
 
     }
 }
