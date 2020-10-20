@@ -1,6 +1,4 @@
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
@@ -39,23 +37,33 @@ public class httpfs {
         }
     }
 
-    // HashMap of header fields
+    // HashMap of Header Fields
     public static HashMap<String, String> headerFields;
 
+    // Server Utilities
     private ServerSocket serverSocket;
     private Socket clientSocket;
     private PrintWriter out;
     private BufferedReader in;
 
+    // Server Settings
+    private static String version = "HTTP/1.0";
+    private static String body = "";
+    private static String httpCode = "";
+    private static String httpMessage = "";
+    private static String response = "";
+    private static String absolutePath = "./src";
+
+
     // ----------------------------------------------------------------------
     // ------------------------------ Methods -------------------------------
     // ----------------------------------------------------------------------
 
+    // start TCP connection and send the response to the client
     public void start(int port) throws Exception {
 
         // The server (httpfs) needs to have a 'unique' ip address and port number. This 'unique' (ip,port) pair allows for a communication to be established from the client to the server.
         serverSocket = new ServerSocket(9999);
-
 
         while(true){
             Socket clientSocket = serverSocket.accept(); // accept the connection when client requests the socket
@@ -66,48 +74,134 @@ public class httpfs {
             // Data to client
             DataOutputStream out = new DataOutputStream( clientSocket.getOutputStream() );
 
-            // body
-            String body = "Hello World!";
+            // Request received by HTTPc
+            String request = "";
+            // Knowing line number to split the file name from line #1
+            int lineNumber = 0;
+            // file name
+            String fileName = "";
 
-            // header fields
-            headerFields = new HashMap<String, String>();
-            headerFields.put("Content-Type", "text/html");
-            headerFields.put("Content-Length", Integer.toString(body.length()));
-
-            // version
-            String version = "HTTP/1.0";
-
-            // status code
-            String httpCode = HttpStatusCode.OK.getCode();
-            String httpMessage = HttpStatusCode.OK.getMessage();
-
-            // Formatting HTTP Response:
-            String response = responseString(version, httpCode, httpMessage, headerFields, body);
-
-            String line = "";
+            // RUN SERVER
             while (in.hasNextLine()) {
-                line = in.nextLine();
-                System.out.println(line);
+                // -------- START OF REQUEST
+                request = in.nextLine();
+                lineNumber++; // Increase Line #
 
-                if(line.equals("")){
-                    // Prepare response
-                    out.writeBytes(response);
-                    out.flush();
-                    out.close(); // close stream to finish it off
-                    break;
+                // Print request to server
+                System.out.println(request);
+
+                //System.out.println(lineNumber + "#: " + request); // <!---- checks line # on console
+
+                // if its the first line, grab the filename
+                if(lineNumber == 1){
+                    fileName = request.split(" ")[1]; ///hello.txt
+                }
+
+                // ---------- END OF REQUEST
+                if(request.equals("")){
+                // ---------- START OF RESPONSE
+                    try {
+
+                        // creating a new file instance
+                        File file = new File(absolutePath + fileName);
+
+                        if(file.canRead()){
+                            // 1. 200 OK file exists and its readable
+
+                            // transform the file to a string
+                            body = file_to_string(file);
+                            //System.out.println(body);
+
+                            // status code
+                            String httpCode = HttpStatusCode.OK.getCode();
+                            String httpMessage = HttpStatusCode.OK.getMessage();
+
+                            // Prepare header
+                            headerFields = new HashMap<String, String>();
+                            headerFields.put("User-Agent", "Concordia");
+                            headerFields.put("Content-Type", "text/html");
+                            headerFields.put("Content-Length", Integer.toString(body.length()));
+
+                            // prepare response
+                            response = responseString(version, httpCode, httpMessage, headerFields, body);
+
+                            // Prepare response
+                            out.writeBytes(response);
+                            out.flush();
+                            out.close(); // close stream to finish it off
+                            break;
+
+                        // File NOT Readable
+                        }else if(!file.canRead()){
+                            // 3. 403 Forbidden file is not readable
+
+                            body = "";
+
+                            // status code
+                            String httpCode = HttpStatusCode.FORBIDDEN.getCode();
+                            String httpMessage = HttpStatusCode.FORBIDDEN.getMessage();
+
+                            // Prepare header
+                            headerFields = new HashMap<String, String>();
+                            headerFields.put("User-Agent", "Concordia");
+
+                            // prepare response
+                            response = responseString(version, httpCode, httpMessage, headerFields, body);
+
+                            // Prepare response
+                            out.writeBytes(response);
+                            out.flush();
+                            out.close(); // close stream to finish it off
+                            break;
+                        }
+
+                    }catch(FileNotFoundException e){
+                        // 2. 404 Not Found file doesnt exist
+
+                        body = "";
+
+                        // status code
+                        String httpCode = HttpStatusCode.NOTFOUND.getCode();
+                        String httpMessage = HttpStatusCode.NOTFOUND.getMessage();
+
+                        // Prepare header
+                        headerFields = new HashMap<String, String>();
+                        headerFields.put("User-Agent", "Concordia");
+
+                        // prepare response
+                        response = responseString(version, httpCode, httpMessage, headerFields, body);
+
+                        // Prepare response
+                        out.writeBytes(response);
+                        out.flush();
+                        out.close(); // close stream to finish it off
+                        break;
+                    }
+
+                // ---------- END OF RESPONSE
                 }
             }
         }
 
     }
 
-    public void stop() throws Exception {
-//        in.close();
-//        out.close();
-//        clientSocket.close();
-//        serverSocket.close();
+    // Returns the inline data to be sent from the input arguments or an empty string
+    public static String file_to_string(File file) throws FileNotFoundException {
+        // Data to be returned
+        String data = "";
+
+        // Create scanner for it
+        Scanner myReader = new Scanner(file);
+
+        // Read the file
+        while (myReader.hasNextLine()) {
+            data +=  myReader.nextLine()+"\n";
+        }
+        myReader.close();
+        return data;
     }
 
+    // Creates the response string based on the arguments
     private static String responseString(String version, String statusCode, String phrase, HashMap<String, String> headerLine, String body){
         // https://github.com/Ra-Ni/COMP-445-LAB-2/blob/master/img/HTTPResp.png
         String sp = " ";
@@ -136,18 +230,6 @@ public class httpfs {
         return httpResponse;
     }
 
-    private String handleRequest(String request){
-        // Split request by space into an array
-        String[] requestArr = request.split("\\s+");
-
-        // Go throught the content of the request
-        for (String item : requestArr) {
-            System.out.println(item);
-        }
-        return "";
-    }
-
-
     // ----------------------------------------------------------------------
     // ------------------------------- MAIN ---------------------------------
     // ----------------------------------------------------------------------
@@ -156,7 +238,6 @@ public class httpfs {
 
         httpfs server=new httpfs();
         server.start(9999);
-
 
     }
 }
