@@ -17,8 +17,7 @@ public class httpfs {
         NOTFOUND("404", "Not Found"),
         CREATED("201", "Created"),
         BADREQUEST("400", "Bad Request"),
-        FORBIDDEN("403", "Forbidden"),
-        ;
+        FORBIDDEN("403", "Forbidden");
 
         private final String code;
         private final String msg;
@@ -52,7 +51,7 @@ public class httpfs {
     private static String httpCode = "";
     private static String httpMessage = "";
     private static String response = "";
-    private static String absolutePath = "./src";
+    private static String absolutePath = "";
 
 
     // ----------------------------------------------------------------------
@@ -66,6 +65,7 @@ public class httpfs {
         serverSocket = new ServerSocket(port_number);
 
         while(true){
+            System.out.println("\n\tServer is listening ...");
             Socket clientSocket = serverSocket.accept(); // accept the connection when client requests the socket
             clientSocket.setKeepAlive(true);
 
@@ -80,6 +80,7 @@ public class httpfs {
             int lineNumber = 0;
             // file name
             String fileName = "";
+            String path = "";
 
             // RUN SERVER
             while (in.hasNextLine()) {
@@ -88,20 +89,19 @@ public class httpfs {
                 lineNumber++; // Increase Line #
 
                 // Print request to server
-                System.out.println(request);
-
-                //System.out.println(lineNumber + "#: " + request); // <!---- checks line # on console
+                if (verbose_flag)
+                    System.out.println(lineNumber + "#: " + request); // <!---- checks line # on console
 
                 // if its the first line, grab the filename
                 if(lineNumber == 1){
-                    fileName = request.split(" ")[1]; // /hello.txt
+                    fileName = request.split(" ")[1].substring(1); // hello.txt
                 }
 
                 // ---------- END OF REQUEST
                 if(request.equals("")){
                 // ---------- START OF RESPONSE
                     // creating a new file instance
-                    File file = new File(absolutePath + fileName);
+                    File file = new File(absolutePath+fileName);
 
                     //Check if the file exists
                     if(file.exists()){
@@ -222,7 +222,7 @@ public class httpfs {
 
         }
 
-        // add the last cr and if to use body
+        // add the last cr and lf to use body
         httpResponse += cr + lf_;
 
         // Entity body
@@ -250,7 +250,7 @@ public class httpfs {
 
     // Retrieve the port from the command line arguments if given
     private static int get_port(String[] arguments){
-        int port = 9999; // The default port is 9999
+        int port = 8080; // The default port is 9999
         for (int i=0; i<arguments.length;i++)
             if (arguments[i].toLowerCase().equals("-p")){
                 try {
@@ -258,7 +258,7 @@ public class httpfs {
                     if (port < 1)
                         throw new Exception();
                 }
-                catch (Exception e){ port = 9999; }
+                catch (Exception e){ port = 8080; }
             };
         return port;
     }
@@ -282,7 +282,7 @@ public class httpfs {
     // ------------------------------- MAIN ---------------------------------
     // ----------------------------------------------------------------------
 
-    public static void main(String[] args )throws Exception {
+    public static void main( String[] args )throws Exception {
         boolean [] flags = get_flags(args);
 
         boolean help_flag = flags[0];
@@ -298,6 +298,8 @@ public class httpfs {
         httpfs server = new httpfs();
         server.start( verbose_flag, port_number, directory );
 
-
+//        File file = new File("hello.txt");
+//        body = file_to_string(file);
+//        System.out.println(body);
     }
 }

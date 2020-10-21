@@ -188,6 +188,17 @@ public class httpc {
         //String path = components[1];
         String request = components[2];
 
+        int port = 8080;
+        if (host.contains(":")) {
+            try {
+                port = Integer.parseInt(host.split(":")[1]);
+                if (port < 1)
+                    throw new Exception();
+            }
+            catch (Exception e){ port = 8080; }
+        }
+
+
         if (host.equals("")) {
             System.out.println("\tInvalid Host given\n");
             System.exit(0);
@@ -196,14 +207,12 @@ public class httpc {
             host = null;
         }
 
-        // length of "http://" is 7 if it is not in given string, help will be printed
-
 
         // Get the IP of the given site
         InetAddress web = InetAddress.getByName(host);
 
         // Connect to that IP on port 80
-        Socket sock = new Socket( web, 9999 );
+        Socket sock = new Socket( web, port );
 
         // Create the stream for communication
         PrintWriter out = new PrintWriter(sock.getOutputStream());
