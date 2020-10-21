@@ -60,18 +60,18 @@ public class httpfs {
     // ----------------------------------------------------------------------
 
     // start TCP connection and send the response to the client
-    public void start(int port) throws Exception {
+    public void start(boolean verbose_flag, int port_number, String directory) throws Exception {
 
         // The server (httpfs) needs to have a 'unique' ip address and port number. This 'unique' (ip,port) pair allows for a communication to be established from the client to the server.
-        serverSocket = new ServerSocket(9999);
+        serverSocket = new ServerSocket(port_number);
 
         while(true){
             Socket clientSocket = serverSocket.accept(); // accept the connection when client requests the socket
             clientSocket.setKeepAlive(true);
 
-            // Data from client
+            // Data input from client
             Scanner in = new Scanner(clientSocket.getInputStream());
-            // Data to client
+            // Data output to client
             DataOutputStream out = new DataOutputStream( clientSocket.getOutputStream() );
 
             // Request received by HTTPc
@@ -94,7 +94,7 @@ public class httpfs {
 
                 // if its the first line, grab the filename
                 if(lineNumber == 1){
-                    fileName = request.split(" ")[1]; ///hello.txt
+                    fileName = request.split(" ")[1]; // /hello.txt
                 }
 
                 // ---------- END OF REQUEST
@@ -207,23 +207,23 @@ public class httpfs {
         // https://github.com/Ra-Ni/COMP-445-LAB-2/blob/master/img/HTTPResp.png
         String sp = " ";
         String cr = "\r";
-        String if_ = "\n";
+        String lf_ = "\n";
         String httpResponse = "";
 
         // Status Line
-        httpResponse += version + sp + statusCode + sp + phrase + cr + if_ ;
+        httpResponse += version + sp + statusCode + sp + phrase + cr + lf_ ;
 
         // Header Line
         for (Map.Entry<String, String> entry : headerLine.entrySet()) { // loop through the header lines
             String headerFieldName = entry.getKey();
             String value = entry.getValue();
 
-            httpResponse += headerFieldName + ":" + value + cr + if_ ;
+            httpResponse += headerFieldName + ":" + value + cr + lf_ ;
 
         }
 
         // add the last cr and if to use body
-        httpResponse += cr + if_;
+        httpResponse += cr + lf_;
 
         // Entity body
         httpResponse += body;
@@ -231,14 +231,72 @@ public class httpfs {
         return httpResponse;
     }
 
+
+    // ----------------------------------------------------------------------
+    // ------------------------------- ARGS ---------------------------------
+    // ----------------------------------------------------------------------
+
+    // Get help and verbose flags
+    private static boolean[] get_flags(String[] arguments){
+        boolean flags[] = {false, false}; // The default is false for verbose and
+        for (String s : arguments) {
+            if (s.toLowerCase().equals("-h") || s.toLowerCase().equals("help"))
+                flags[0] = true;
+            if (s.toLowerCase().equals("-v"))
+                flags[1] = true;
+        }
+        return flags;
+    }
+
+    // Retrieve the port from the command line arguments if given
+    private static int get_port(String[] arguments){
+        int port = 9999; // The default port is 9999
+        for (int i=0; i<arguments.length;i++)
+            if (arguments[i].toLowerCase().equals("-p")){
+                try {
+                    port = Integer.parseInt(arguments[i + 1]);
+                    if (port < 1)
+                        throw new Exception();
+                }
+                catch (Exception e){ port = 9999; }
+            };
+        return port;
+    }
+
+    // Get directory specified in command line arguments if given
+    private static String get_directory(String[] arguments) {
+        String directory = "/";
+        for (int i=0; i<arguments.length;i++)
+            if (arguments[i].toLowerCase().equals("-d")) {
+                try {
+                    directory = arguments[i + 1];
+                }
+                catch (Exception e){ directory = "/"; }
+            }
+        return directory;
+    }
+
+
+
     // ----------------------------------------------------------------------
     // ------------------------------- MAIN ---------------------------------
     // ----------------------------------------------------------------------
 
     public static void main(String[] args )throws Exception {
+        boolean [] flags = get_flags(args);
 
-        httpfs server=new httpfs();
-        server.start(9999);
+        boolean help_flag = flags[0];
+        if (help_flag){
+            System.out.println("\tUsage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]\n");
+            System.exit(0);
+        }
+
+        boolean verbose_flag = flags[1];
+        int port_number = get_port(args);
+        String directory = get_directory(args);
+
+        httpfs server = new httpfs();
+        server.start( verbose_flag, port_number, directory );
 
 
     }

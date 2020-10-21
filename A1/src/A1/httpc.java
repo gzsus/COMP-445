@@ -133,8 +133,9 @@ public class httpc {
         else if ( url.toLowerCase().startsWith("http://") )
             indexOfHost = 7;
 
-        host = url.substring(indexOfHost,indexOfPath);
+        host = url.substring(indexOfHost);
         if ( indexOfPath > -1 ) {
+            host = url.substring(indexOfHost,indexOfPath);
             path = url.substring( indexOfPath );
             request = url.substring( url.lastIndexOf('/') );
         }
@@ -191,6 +192,9 @@ public class httpc {
             System.out.println("\tInvalid Host given\n");
             System.exit(0);
         }
+        else if (host.startsWith("http://www.localhost") || host.startsWith("www.localhost") || host.startsWith("localhost")){
+            host = null;
+        }
 
         // length of "http://" is 7 if it is not in given string, help will be printed
 
@@ -199,7 +203,7 @@ public class httpc {
         InetAddress web = InetAddress.getByName(host);
 
         // Connect to that IP on port 80
-        Socket sock = new Socket( web, 80 );
+        Socket sock = new Socket( web, 9999 );
 
         // Create the stream for communication
         PrintWriter out = new PrintWriter(sock.getOutputStream());
