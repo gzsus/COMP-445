@@ -142,6 +142,9 @@ public class httpc {
         else
             path = request = "/";
 
+        // host: anything between 'http://www.' and '/'
+        // path: /Dir..[/Request]
+
         return new String[]{ host, path, request };
     }
 
@@ -186,7 +189,7 @@ public class httpc {
         String[] components = get_components(url);
         String host = components[0];
         //String path = components[1];
-        String request = components[2];
+        String request = components[1];
 
         int port = 8080;
         if (host.contains(":")) {

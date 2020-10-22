@@ -78,7 +78,10 @@ public class httpfs {
             String request = "";
             // Knowing line number to split the file name from line #1
             int lineNumber = 0;
-            // file name
+
+            // Variables for request
+            boolean request_doc = false;
+            String method = "";
             String fileName = "";
             String path = "";
 
@@ -89,27 +92,51 @@ public class httpfs {
                 lineNumber++; // Increase Line #
 
                 // Print request to server
-                if (verbose_flag)
+                if (verbose_flag && !request.isBlank())
                     System.out.println(lineNumber + "#: " + request); // <!---- checks line # on console
 
                 // if its the first line, grab the filename
                 if(lineNumber == 1){
-                    fileName = request.split(" ")[1].substring(1); // hello.txt
+                    method = request.split(" ")[0].toLowerCase(); // GET||POST
+                    path = request.split(" ")[1]; // requested directory or file
+
+                    if ( path.endsWith(".txt") )
+                        request_doc = true; // flag to check if request for document or directory
+
+                    absolutePath = request.split(" ")[1].substring(1); // requested directory
+
                 }
 
                 // ---------- END OF REQUEST
                 if(request.equals("")){
                 // ---------- START OF RESPONSE
-                    // creating a new file instance
-                    File file = new File(absolutePath+fileName);
+                    File file = new File(absolutePath);
+
+                    /*          --- Get Cases ---
+                        Directories:  "/" or "/dir" or "/dir/dir"
+                            Empty request:
+                                Show all files and directories in absolute path or error
+                            Specific directory with no file:
+                                Show all files in specific directory or error
+                        Files: "/File.txt" or "/dir/File.txt" or "/dir/dir/File.txt"
+                            File with no path:
+                                Send back file or error
+                            File with path:
+                                Send back file or error
+                     */
+
 
                     //Check if the file exists
-                    if(file.exists()){
+                    if(file.exists() || absolutePath.equals("")){
 
                         // sudo chmod 666 hello.txt - can read
                         if(file.canRead()) {
-                            // transform the file to a string
-                            body = file_to_string(file);
+                            if ( method.equals("get") && request_doc)
+                                // transform the file to a string
+                                body = file_to_string(file);
+                            if ( method.equals("get") && !request_doc)
+                                // transform the file to a string
+                                body = get_files(file);
 
                             // 1. 200 OK file exists and its readable
 
@@ -156,7 +183,7 @@ public class httpfs {
                             break;
                         }
 
-                    // 2. 404 Not Found file doesnt exist
+                    // 2. 404 Not Found file doesn't exist
                     }else{
 
                         body = "";
@@ -200,6 +227,28 @@ public class httpfs {
         }
         myReader.close();
         return data;
+    }
+
+    // get all files in directory
+    public static String get_files(File folder) {
+        String filesNames = "";
+
+        try {
+            File[] listOfFiles = folder.listFiles();
+
+            for (int i = 0; i < listOfFiles.length; i++) {
+                if (listOfFiles[i].isFile()) {
+                    filesNames += "\t" + listOfFiles[i].getName();
+                } else if (listOfFiles[i].isDirectory()) {
+                    filesNames += "\tFolder:" + listOfFiles[i].getName();
+                }
+
+            }
+        }
+        catch (Exception e) { filesNames = "\tBad Request"; }
+        if( filesNames.equals("") )
+            filesNames = "Empty directory";
+        return filesNames;
     }
 
     // Creates the response string based on the arguments
@@ -298,8 +347,5 @@ public class httpfs {
         httpfs server = new httpfs();
         server.start( verbose_flag, port_number, directory );
 
-//        File file = new File("hello.txt");
-//        body = file_to_string(file);
-//        System.out.println(body);
     }
 }
