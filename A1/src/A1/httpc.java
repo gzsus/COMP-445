@@ -231,9 +231,9 @@ public class httpc {
              header += "Content-Length:"+body.length()+"\r\n";
         }
 
-        /* * * * * * * * * * * * * * * * *  Standard * * * * * * * * * * * * * * * *
-        *   (GET|POST) + " " + URL + " HTTP/1.0\r\n"+ [header(s)+"\r\n"] + "\r\n"
-        * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+        /* * * * * * * * * * * * * * * * *  Standard * * * * * * * * * * * * * * * * * * * * * *
+        *   (GET|POST) + " " + URL + " HTTP/1.0\r\n"+ [header(s)+"\r\n"] + "\r\n" + [body]
+        * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
         // Prepare and send the request
         String statement = method+" "+request+" "+"HTTP/1.0\r\n"+header+"\r\n"+body;

@@ -1,6 +1,8 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -85,6 +87,9 @@ public class httpfs {
             String fileName = "";
             String path = "";
 
+            boolean done_receiving = false;
+
+            int body_length = 0;
             // RUN SERVER
             while (in.hasNextLine()) {
                 // -------- START OF REQUEST
@@ -92,7 +97,7 @@ public class httpfs {
                 lineNumber++; // Increase Line #
 
                 // Print request to server
-                if (verbose_flag && !request.isBlank())
+                if (verbose_flag)
                     System.out.println(lineNumber + "#: " + request); // <!---- checks line # on console
 
                 // if its the first line, grab the filename
@@ -104,12 +109,20 @@ public class httpfs {
                         request_doc = true; // flag to check if request for document or directory
 
                     absolutePath = request.split(" ")[1].substring(1); // requested directory
-
                 }
+
+                if(request.startsWith("Content-Length:"))
+                    body_length = Integer.parseInt(request.substring(15));
+
 
                 // ---------- END OF REQUEST
                 if(request.equals("")){
                 // ---------- START OF RESPONSE
+
+                    if(body_length > 0) {
+                        System.out.println("There is a body"); // <!---- checks line # on console
+                    }
+
                     File file = new File(absolutePath);
 
                     /*          --- Get Cases ---
@@ -124,6 +137,105 @@ public class httpfs {
                             File with path:
                                 Send back file or error
                      */
+
+                    if(method.equals("post")) {
+
+                        boolean success = false;
+                        String dir = "";
+                        if (absolutePath.contains("/")) {
+                            if (absolutePath.contains("."))
+                                dir = absolutePath.substring(0, absolutePath.lastIndexOf("/"));
+                            else
+                                dir = absolutePath;
+                        }
+
+                        if (file.exists()) {
+                            body += "Modified ";
+                            if (request_doc){
+                                body = "File";
+                                file.delete();
+                                File new_file = new File(absolutePath);
+                                String source = "";
+                                try {
+                                    FileWriter f2 = new FileWriter(new_file, false);
+                                    f2.write(source);
+                                    f2.close();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+                                // 200 OK file or directory is modified
+
+                                // status code
+                                String httpCode = HttpStatusCode.OK.getCode();
+                                String httpMessage = HttpStatusCode.OK.getMessage();
+
+                                // Prepare header
+                                headerFields = new HashMap<String, String>();
+                                headerFields.put("User-Agent", "Concordia");
+                                headerFields.put("Content-Type", "text/html");
+                                headerFields.put("Content-Length", Integer.toString(body.length()));
+
+                                // prepare response
+                                response = responseString(version, httpCode, httpMessage, headerFields, body);
+
+                                // Prepare response
+                                out.writeBytes(response);
+                                out.flush();
+                                out.close(); // close stream to finish it off
+                                break;
+
+
+                            }
+                            else{
+                                // 403 Forbidden action
+                                body = "Directory already exists";
+
+                                // status code
+                                String httpCode = HttpStatusCode.FORBIDDEN.getCode();
+                                String httpMessage = HttpStatusCode.FORBIDDEN.getMessage();
+
+                                // Prepare header
+                                headerFields = new HashMap<String, String>();
+                                headerFields.put("User-Agent", "Concordia");
+
+                                // prepare response
+                                response = responseString(version, httpCode, httpMessage, headerFields, body);
+
+                                // Prepare response
+                                out.writeBytes(response);
+                                out.flush();
+                                out.close(); // close stream to finish it off
+                                break;
+
+                            }
+                        }
+                        else { // Creates the directory or nested directories
+                            body += "Created " + create_dir(dir,"") + "\tDesired: " + dir;
+                            // 200 OK file or directory is created
+
+                            // status code
+                            String httpCode = HttpStatusCode.OK.getCode();
+                            String httpMessage = HttpStatusCode.OK.getMessage();
+
+                            // Prepare header
+                            headerFields = new HashMap<String, String>();
+                            headerFields.put("User-Agent", "Concordia");
+                            headerFields.put("Content-Type", "text/html");
+                            headerFields.put("Content-Length", Integer.toString(body.length()));
+
+                            // prepare response
+                            response = responseString(version, httpCode, httpMessage, headerFields, body);
+
+                            // Prepare response
+                            out.writeBytes(response);
+                            out.flush();
+                            out.close(); // close stream to finish it off
+                            break;
+
+                        }
+                    }
+
 
 
                     //Check if the file exists
@@ -208,6 +320,7 @@ public class httpfs {
 
                 // ---------- END OF RESPONSE
                 }
+
             }
         }
 
@@ -280,6 +393,64 @@ public class httpfs {
         return httpResponse;
     }
 
+    // Creates or overwrites a file, creates a directory if it does not exist
+    private static String create_dir (String dir, String input) throws IOException {
+        String givenPath = dir;     // given string
+        String givenDirectory = "";
+        String givenFile = "";
+
+        if (givenPath.isEmpty() || givenPath.isBlank() || givenPath.equals("/"))
+            return "";
+
+        if (givenPath.startsWith("/"))    // chop "/" in front of string
+            givenPath = givenPath.substring(1);
+        if (givenPath.endsWith("/"))      // chop "/" in end of string
+            givenPath = givenPath.substring(0,-1);
+
+
+        if (!givenPath.contains(".txt")){
+            if (givenPath.contains("/")) {      // Nested folders
+                givenDirectory = givenPath.substring(0, dir.lastIndexOf("/"));
+
+                Files.createDirectories(Paths.get(givenDirectory));
+
+                return "Nested directories created";
+            }
+            else {                              // Just one folder
+                Files.createDirectories(Paths.get(givenPath));
+                return "Directory created";
+            }
+        }
+        else{
+            if (givenPath.contains("/")) {      // File in folder/s
+                givenDirectory = givenPath.substring(0, dir.lastIndexOf("/"));
+                givenFile = givenPath.substring(dir.lastIndexOf("/"));
+
+                Files.createDirectories(Paths.get(givenDirectory));
+                File fold = new File(givenDirectory+"/"+givenFile);
+                fold.delete();
+
+                File fnew = new File(givenDirectory+"/"+givenFile);
+                FileWriter f2 = new FileWriter(fnew, false);
+                f2.write(input);
+                f2.close();
+                fnew.createNewFile();
+                return "File in folder created";
+            }
+            else {                              // Just one file
+                givenFile = givenPath;
+                File fold = new File(givenFile);
+                fold.delete();
+
+                File fnew = new File(givenFile);
+                FileWriter f2 = new FileWriter(fnew, false);
+                f2.write(input);
+                f2.close();
+                fnew.createNewFile();
+                return "File created";
+            }
+        }
+    }
 
     // ----------------------------------------------------------------------
     // ------------------------------- ARGS ---------------------------------
@@ -346,6 +517,5 @@ public class httpfs {
 
         httpfs server = new httpfs();
         server.start( verbose_flag, port_number, directory );
-
     }
 }
