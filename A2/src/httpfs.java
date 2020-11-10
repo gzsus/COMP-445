@@ -67,9 +67,13 @@ public class httpfs {
         serverSocket = new ServerSocket(port_number);
 
         while(true){
+
             System.out.println("\n\tServer is listening ...");
             Socket clientSocket = serverSocket.accept(); // accept the connection when client requests the socket
             clientSocket.setKeepAlive(true);
+
+
+            BufferedReader incoming = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
             // Data input from client
             Scanner in = new Scanner(clientSocket.getInputStream());
@@ -119,9 +123,16 @@ public class httpfs {
                 if(request.equals("")){
                 // ---------- START OF RESPONSE
 
-                    if(body_length > 0) {
-                        System.out.println("There is a body"); // <!---- checks line # on console
-                    }
+//                    if(body_length > 0) {
+//                        System.out.println("There is a body"); // <!---- checks line # on console
+//                        StringBuilder body = new StringBuilder();
+//                        int c = 0;
+//                        for (int i = 0; i < body_length; i++) {
+//                            c = incoming.read();
+//                            body.append((char) c);
+//                            System.out.println(lineNumber + "#: " + body);
+//                        }
+//                    }
 
                     File file = new File(absolutePath);
 
@@ -211,7 +222,8 @@ public class httpfs {
                             }
                         }
                         else { // Creates the directory or nested directories
-                            body += "Created " + create_dir(dir,"") + "\tDesired: " + dir;
+                            body = " \tCreated "+dir;
+                            create_dir(dir,"");
                             // 200 OK file or directory is created
 
                             // status code
@@ -400,7 +412,7 @@ public class httpfs {
         String givenFile = "";
 
         if (givenPath.isEmpty() || givenPath.isBlank() || givenPath.equals("/"))
-            return "";
+            return "Nothing, use test_folder";
 
         if (givenPath.startsWith("/"))    // chop "/" in front of string
             givenPath = givenPath.substring(1);
@@ -517,5 +529,8 @@ public class httpfs {
 
         httpfs server = new httpfs();
         server.start( verbose_flag, port_number, directory );
+
+//        System.out.println(create_dir("testing","Hello"));
+
     }
 }
