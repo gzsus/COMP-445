@@ -67,8 +67,11 @@ public class httpfs {
         serverSocket = new ServerSocket(port_number);
 
         while(true){
+            System.out.print("\n\tServer is listening ");
+            if (verbose_flag)
+                System.out.print("on port "+ port_number);
+            System.out.println("...");
 
-            System.out.println("\n\tServer is listening ...");
             Socket clientSocket = serverSocket.accept(); // accept the connection when client requests the socket
             clientSocket.setKeepAlive(true);
 
@@ -76,7 +79,8 @@ public class httpfs {
             BufferedReader incoming = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
             // Data input from client
-            Scanner in = new Scanner(clientSocket.getInputStream());
+            //Scanner in = new Scanner(clientSocket.getInputStream());
+            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             // Data output to client
             DataOutputStream out = new DataOutputStream( clientSocket.getOutputStream() );
 
@@ -95,44 +99,34 @@ public class httpfs {
 
             int body_length = 0;
             // RUN SERVER
-            while (in.hasNextLine()) {
+            String line = in.readLine();
+
+            while (line != null) {
                 // -------- START OF REQUEST
-                request = in.nextLine();
                 lineNumber++; // Increase Line #
 
                 // Print request to server
                 if (verbose_flag)
-                    System.out.println(lineNumber + "#: " + request); // <!---- checks line # on console
+                    System.out.println(lineNumber + "#: " + line); // <!---- checks line # on console
 
                 // if its the first line, grab the filename
                 if(lineNumber == 1){
-                    method = request.split(" ")[0].toLowerCase(); // GET||POST
-                    path = request.split(" ")[1]; // requested directory or file
+                    method = line.split(" ")[0].toLowerCase(); // GET||POST
+                    path = line.split(" ")[1]; // requested directory or file
 
                     if ( path.endsWith(".txt") )
                         request_doc = true; // flag to check if request for document or directory
 
-                    absolutePath = request.split(" ")[1].substring(1); // requested directory
+                    absolutePath += line.split(" ")[1].substring(1); // requested directory
                 }
 
-                if(request.startsWith("Content-Length:"))
-                    body_length = Integer.parseInt(request.substring(15));
+                if(line.startsWith("Content-Length:"))
+                    body_length = Integer.parseInt(line.substring(15));
 
 
                 // ---------- END OF REQUEST
-                if(request.equals("")){
+                if(line.equals("")){
                 // ---------- START OF RESPONSE
-
-//                    if(body_length > 0) {
-//                        System.out.println("There is a body"); // <!---- checks line # on console
-//                        StringBuilder body = new StringBuilder();
-//                        int c = 0;
-//                        for (int i = 0; i < body_length; i++) {
-//                            c = incoming.read();
-//                            body.append((char) c);
-//                            System.out.println(lineNumber + "#: " + body);
-//                        }
-//                    }
 
                     File file = new File(absolutePath);
 
@@ -151,14 +145,40 @@ public class httpfs {
 
                     if(method.equals("post")) {
 
-                        boolean success = false;
-                        String dir = "";
-                        if (absolutePath.contains("/")) {
-                            if (absolutePath.contains("."))
-                                dir = absolutePath.substring(0, absolutePath.lastIndexOf("/"));
-                            else
-                                dir = absolutePath;
+                        if (body_length > 0){
+                            System.out.println("Reading :");
+                            String requested_body = in.readLine();
+                            System.out.println("read");
+                            System.out.println("   Requested body: "+ requested_body);
                         }
+
+//                        boolean hitCarriage = false;
+//
+//                        String requested_body = incoming.readLine();
+//
+//                        while(requested_body != null){
+//
+//                            requested_body = incoming.readLine();
+//
+//                            // If the line is empty then set the carriage return to true
+//                            if(requested_body.equals("")){
+//                                hitCarriage = true;
+//                            }
+//
+//                            // if carriage return is true then print lines
+//                            if(hitCarriage) {
+//                                System.out.println(requested_body);
+//                            }
+//
+//                            // read next line
+//                            requested_body = incoming.readLine();
+//                        }
+//
+//                        System.out.println("   Requested body: "+ requested_body);
+
+
+                        boolean success = false;
+                        String dir = absolutePath;
 
                         if (file.exists()) {
                             body += "Modified ";
@@ -223,6 +243,7 @@ public class httpfs {
                         }
                         else { // Creates the directory or nested directories
                             body = " \tCreated "+dir;
+                            System.out.println("   Running function with: "+dir+"\n");
                             create_dir(dir,"");
                             // 200 OK file or directory is created
 
@@ -333,6 +354,7 @@ public class httpfs {
                 // ---------- END OF RESPONSE
                 }
 
+                line = in.readLine();
             }
         }
 
@@ -519,7 +541,10 @@ public class httpfs {
 
         boolean help_flag = flags[0];
         if (help_flag){
-            System.out.println("\tUsage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]\n");
+            System.out.println("   Usage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]\n"+
+                    "\t-v\tPrints debugging messages\n" +
+                    "\t-p\tSpecifies the port number that the server will listen and serve at default is 8080\n" +
+                    "\t-d\tSpecifies the directorythat the server will use to read/write\n");
             System.exit(0);
         }
 

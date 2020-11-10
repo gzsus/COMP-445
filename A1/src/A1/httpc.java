@@ -232,12 +232,12 @@ public class httpc {
         }
 
         /* * * * * * * * * * * * * * * * *  Standard * * * * * * * * * * * * * * * * * * * * * *
-        *   (GET|POST) + " " + URL + " HTTP/1.0\r\n"+ [header(s)+"\r\n"] + "\r\n" + [body]
+        *   (GET|POST) + " " + URL + " HTTP/1.0\r\n"+ [header(s)+"\r\n"] +  "" + "\r\n" + [body]
         * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
         // Prepare and send the request
         String statement = method+" "+request+" "+"HTTP/1.0\r\n"+header+"\r\n"+body;
-        out.write(statement);
+        out.write("Hello world!\r");
         out.flush();
 
 
