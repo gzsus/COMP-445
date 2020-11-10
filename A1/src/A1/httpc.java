@@ -237,7 +237,7 @@ public class httpc {
 
         // Prepare and send the request
         String statement = method+" "+request+" "+"HTTP/1.0\r\n"+header+"\r\n"+body;
-        out.write("Hello world!\r");
+        out.write( statement );
         out.flush();
 
 

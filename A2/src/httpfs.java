@@ -67,6 +67,7 @@ public class httpfs {
         serverSocket = new ServerSocket(port_number);
 
         while(true){
+            absolutePath = directory;
             System.out.print("\n\tServer is listening ");
             if (verbose_flag)
                 System.out.print("on port "+ port_number);
@@ -145,48 +146,25 @@ public class httpfs {
 
                     if(method.equals("post")) {
 
-                        if (body_length > 0){
-                            System.out.println("Reading :");
-                            String requested_body = in.readLine();
-                            System.out.println("read");
-                            System.out.println("   Requested body: "+ requested_body);
-                        }
+                        char[] data = new char[body_length];
 
-//                        boolean hitCarriage = false;
-//
-//                        String requested_body = incoming.readLine();
-//
-//                        while(requested_body != null){
-//
-//                            requested_body = incoming.readLine();
-//
-//                            // If the line is empty then set the carriage return to true
-//                            if(requested_body.equals("")){
-//                                hitCarriage = true;
-//                            }
-//
-//                            // if carriage return is true then print lines
-//                            if(hitCarriage) {
-//                                System.out.println(requested_body);
-//                            }
-//
-//                            // read next line
-//                            requested_body = incoming.readLine();
-//                        }
-//
-//                        System.out.println("   Requested body: "+ requested_body);
+                        if (body_length > 0){
+                            lineNumber++;
+                            in.read(data,0,data.length);
+                            System.out.println(lineNumber + "#: " + String.valueOf(data));
+                        }
 
 
                         boolean success = false;
                         String dir = absolutePath;
 
                         if (file.exists()) {
-                            body += "Modified ";
+
                             if (request_doc){
-                                body = "File";
+                                body = "File Modified";
                                 file.delete();
                                 File new_file = new File(absolutePath);
-                                String source = "";
+                                String source = String.valueOf(data);
                                 try {
                                     FileWriter f2 = new FileWriter(new_file, false);
                                     f2.write(source);
@@ -243,8 +221,8 @@ public class httpfs {
                         }
                         else { // Creates the directory or nested directories
                             body = " \tCreated "+dir;
-                            System.out.println("   Running function with: "+dir+"\n");
-                            create_dir(dir,"");
+
+                            create_dir(dir, String.valueOf(data));
                             // 200 OK file or directory is created
 
                             // status code
@@ -524,6 +502,8 @@ public class httpfs {
             if (arguments[i].toLowerCase().equals("-d")) {
                 try {
                     directory = arguments[i + 1];
+                    if ( directory.contains("../") || directory.contains("~") )
+                        directory = "/";
                 }
                 catch (Exception e){ directory = "/"; }
             }
