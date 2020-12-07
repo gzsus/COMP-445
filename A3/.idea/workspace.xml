@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="84d6e243-a037-4493-9a99-60ac41d7e09c" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/uiDesigner.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/UDP/Packet.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/UDP/Packet.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/UDP/httpc.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/UDP/httpc.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/UDP/httpfs.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/UDP/httpfs.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectId" id="1lIgT13nHayuF65H45FEH4cUnC6" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="RunManager" selected="Application.httpc">
+    <configuration name="httpc" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="UDP.httpc" />
+      <module name="A3" />
+      <option name="PROGRAM_PARAMETERS" value="post -v -d &quot;Hello World!&quot; &quot;localhost/hello.txt&quot;" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="httpfs" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="UDP.httpfs" />
+      <module name="A3" />
+      <option name="PROGRAM_PARAMETERS" value="-v" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Application.httpc" />
+      <item itemvalue="Application.httpfs" />
+    </list>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="84d6e243-a037-4493-9a99-60ac41d7e09c" name="Default Changelist" comment="" />
+      <created>1607290025460</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1607290025460</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="96" y="0" width="1089" height="720" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1607304076936">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state x="96" y="0" width="1089" height="720" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1280.720@0.0.1280.720" timestamp="1607304076936" />
+    <state x="371" y="150" key="#com.intellij.ide.util.TreeClassChooserDialog" timestamp="1607290537631">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state x="371" y="150" key="#com.intellij.ide.util.TreeClassChooserDialog/0.0.1280.720@0.0.1280.720" timestamp="1607290537631" />
+    <state width="1237" height="148" key="GridCell.Tab.0.bottom" timestamp="1607308857647">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state width="1237" height="148" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1607308857647" />
+    <state width="1237" height="148" key="GridCell.Tab.0.center" timestamp="1607308857647">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state width="1237" height="148" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1607308857647" />
+    <state width="1237" height="148" key="GridCell.Tab.0.left" timestamp="1607308857647">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state width="1237" height="148" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1607308857647" />
+    <state width="1237" height="148" key="GridCell.Tab.0.right" timestamp="1607308857647">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state width="1237" height="148" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1607308857647" />
+    <state x="0" y="0" width="998" height="707" key="dock-window-1" timestamp="1607292126124">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state x="0" y="0" width="998" height="707" key="dock-window-1/0.0.1280.720@0.0.1280.720" timestamp="1607292126124" />
+  </component>
+</project>

@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
-public class httpfs {
+public class  httpfs {
 
     // ----------------------------------------------------------------------
     // ------------------------------ Variables -----------------------------
@@ -73,11 +73,16 @@ public class httpfs {
         serverSocket = new ServerSocket(port_number);
 
         while(true){
+
             absolutePath = directory;
             System.out.print("\n\tServer is listening ");
             if (verbose_flag)
                 System.out.print("on port "+ port_number);
             System.out.println("...");
+
+            ////    NEW
+            Packet arrived = recvfrom(port_number);
+            System.out.println(arrived);
 
             Socket clientSocket = serverSocket.accept(); // accept the connection when client requests the socket
             clientSocket.setKeepAlive(true);
@@ -473,23 +478,27 @@ public class httpfs {
     ////    NEW
     //
     private static Packet recvfrom (int port){
-        Packet p;
+
         try (DatagramChannel channel = DatagramChannel.open()) {
             channel.bind(new InetSocketAddress(port));
-            ByteBuffer buf = ByteBuffer.allocate(Packet.MAX_SIZE).order(ByteOrder.BIG_ENDIAN);
-            //p = new Packet();
+            ByteBuffer buffer = ByteBuffer.allocate(Packet.MAX_SIZE).order(ByteOrder.BIG_ENDIAN);
 
-            buf.clear();
-            SocketAddress router = channel.receive(buf);
-            buf.flip();
-            //Packet p = Packet.from_buffer(buf);
-            //return p;
+            while (true) {
+                buffer.clear();
+                SocketAddress router = channel.receive(buffer);
+                buffer.flip();
+
+                Packet packet = Packet.from_buffer(buffer);
+                buffer.flip();
+
+                return packet;
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
-        return null;
+
     }
 
     // ----------------------------------------------------------------------
@@ -510,7 +519,7 @@ public class httpfs {
 
     // Retrieve the port from the command line arguments if given
     private static int get_port(String[] arguments){
-        int port = 8080; // The default port is 9999
+        int port = 8007; // The default port is 8007
         for (int i=0; i<arguments.length;i++)
             if (arguments[i].toLowerCase().equals("-p")){
                 try {
@@ -518,7 +527,7 @@ public class httpfs {
                     if (port < 1)
                         throw new Exception();
                 }
-                catch (Exception e){ port = 8080; }
+                catch (Exception e){ port = 8007; }
             };
         return port;
     }

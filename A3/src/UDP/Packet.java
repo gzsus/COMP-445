@@ -80,13 +80,12 @@ public class Packet {
         long seq = Integer.toUnsignedLong(buf.getInt());
         byte[] host = new byte[]{buf.get(), buf.get(), buf.get(), buf.get()};
         InetAddress addr = InetAddress.getByAddress(host);
-        int dest_port = Short.toUnsignedInt(buf.getShort());
+        int peer_port = Short.toUnsignedInt(buf.getShort());
         byte[] payld = new byte[buf.remaining()];
         ByteBuffer payload = buf.get(payld);
 
 
-        int port = Short.toUnsignedInt(buf.getShort());
-        Packet packet = new Packet(typ, seq,addr,port,payld);
+        Packet packet = new Packet(typ, seq,addr,peer_port,payld);
 
         return null;
     }
@@ -94,7 +93,7 @@ public class Packet {
 
     @Override
     public String toString() {
-        return String.format("#%d peer=%s:%d, size=%d\n\t%s", sequence, dest_address, dest_port, payload.length, payload);
+        return String.format("#%d peer=%s:%d, size=%d\t%s", sequence, dest_address, dest_port, payload.length, payload);
     }
 
 }

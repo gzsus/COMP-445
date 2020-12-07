@@ -193,14 +193,14 @@ public class httpc {
         //String path = components[1];
         String request = components[1];
 
-        int port = 8080;
+        int port = 8007;
         if (host.contains(":")) {
             try {
                 port = Integer.parseInt(host.split(":")[1]);
                 if (port < 1)
                     throw new Exception();
             }
-            catch (Exception e){ port = 8080; }
+            catch (Exception e){ port = 8007; }
         }
 
 
@@ -229,14 +229,17 @@ public class httpc {
          * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
         // Prepare and send the request
-        String statement = method+" "+request+" "+"HTTP/1.0\r\n"+header+"\r\n"+body;
+        String payload = method+" "+request+" "+"HTTP/1.0\r\n"+header+"\r\n"+body;
 
         SocketAddress r_address = new InetSocketAddress("localhost", 3000);
         InetSocketAddress s_address = new InetSocketAddress("localhost", port);
 
-
-        Packet p = new Packet(0,0,s_address.getAddress(),s_address.getPort(),body.getBytes());
+        System.out.println("Payload: "+payload+"\n");
+        Packet p = new Packet(0,0,s_address.getAddress(),s_address.getPort(),payload.getBytes());
+        System.out.println("Sent: "+p+"\n");
         runUDPclient(r_address,s_address,p);
+    }
+
 //        // Get the IP of the given site
 //        InetAddress web = InetAddress.getByName(host);
 //
@@ -288,7 +291,6 @@ public class httpc {
 //        in.close();
 //        sock.close();
 
-    }
 
 
     ////    NEW
