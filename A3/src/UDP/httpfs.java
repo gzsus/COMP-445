@@ -1,19 +1,18 @@
 package UDP;
 import java.io.*;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.Set;
-
-import static java.nio.channels.SelectionKey.OP_READ;
 
 public class  httpfs {
 
@@ -81,21 +80,43 @@ public class  httpfs {
             if (verbose_flag)
                 System.out.print("on port "+ port_number);
             System.out.println("...");
+            // skip line
+            System.out.println();
 
-            ////    NEW
-            Packet arrived = recvfrom(port_number);
-            String arr[] = arrived.toString().split("\n");
+            response=" FINISHED!";
 
-            //int client_port = 41830;
+            try (DatagramChannel channel = DatagramChannel.open()) {
+                channel.bind(new InetSocketAddress(port_number));
+                ByteBuffer buf = ByteBuffer
+                        .allocate(Packet.MAX_SIZE)
+                        .order(ByteOrder.BIG_ENDIAN);
 
-            for (int i=0; i<arr.length; i++) {
-                String request = arr[i];
-                System.out.println(arr[i]);
+                buf.clear();
 
+                // ** -------------------------- **
+                // ** --------- REQUEST -------- **
+                // ** -------------------------- **
 
-                // Request received by HTTPc
-                //String request = "";
-                // Knowing line number to split the file name from line #1
+                SocketAddress router = channel.receive(buf);
+
+                // Parse a packet from the received raw data.
+                buf.flip();
+                Packet packet = Packet.from_buffer(buf);
+                buf.flip();
+
+                System.out.println("RECEIVING THIS REQUEST FROM CLIENT");
+                System.out.println("===========");
+
+                String payload = new String(packet.get_payload());
+                System.out.println("Packet: " + packet);
+                System.out.println("-------------------------");
+                System.out.println("Router: " + router);
+                System.out.println("Payload: " + payload);
+                System.out.println("-------------------------");
+                System.out.println("PAYLOAD SPLIT - PROCESS THE DATA FROM CLIENT");
+                System.out.println();
+
+                String arrivedArr[] = payload.toString().split("\n");
                 int lineNumber = 0;
 
                 // Variables for request
@@ -107,10 +128,16 @@ public class  httpfs {
                 boolean done_receiving = false;
 
                 int body_length = 0;
-                // RUN SERVER
-                String line = request;
 
-                while (line != null) {
+                // --------------------------------
+                // start processing line by line
+                // --------------------------------
+
+                for (String line: arrivedArr) {
+
+                    // trim all the bad data
+                    line = line.trim();
+
                     // -------- START OF REQUEST
                     lineNumber++; // Increase Line #
 
@@ -139,18 +166,18 @@ public class  httpfs {
 
                         File file = new File(absolutePath);
 
-                        /*          --- Get Cases ---
-                            Directories:  "/" or "/dir" or "/dir/dir"
-                                Empty request:
-                                    Show all files and directories in absolute path or error
-                                Specific directory with no file:
-                                    Show all files in specific directory or error
-                            Files: "/File.txt" or "/dir/File.txt" or "/dir/dir/File.txt"
-                                File with no path:
-                                    Send back file or error
-                                File with path:
-                                    Send back file or error
-                         */
+                    /*          --- Get Cases ---
+                        Directories:  "/" or "/dir" or "/dir/dir"
+                            Empty request:
+                                Show all files and directories in absolute path or error
+                            Specific directory with no file:
+                                Show all files in specific directory or error
+                        Files: "/File.txt" or "/dir/File.txt" or "/dir/dir/File.txt"
+                            File with no path:
+                                Send back file or error
+                            File with path:
+                                Send back file or error
+                     */
 
                         if(method.equals("post")) {
 
@@ -158,8 +185,10 @@ public class  httpfs {
 
                             if (body_length > 0){
                                 lineNumber++;
-                                in.read(data,0,data.length);
-                                System.out.println(lineNumber + "#: " + String.valueOf(data));
+                                //in.read(data,0,data.length);
+                                //System.out.println(lineNumber + "#: " + String.valueOf(data));
+                                // NEW --
+                                System.out.println(lineNumber + "#: " + line);
                             }
 
 
@@ -172,7 +201,9 @@ public class  httpfs {
                                     body = "File Modified";
                                     file.delete();
                                     File new_file = new File(absolutePath);
-                                    String source = String.valueOf(data);
+                                    //String source = String.valueOf(data);
+                                    // NEW --
+                                    String source = line;
                                     try {
                                         FileWriter f2 = new FileWriter(new_file, false);
                                         f2.write(source);
@@ -196,11 +227,16 @@ public class  httpfs {
                                     // prepare response
                                     response = responseString(version, httpCode, httpMessage, headerFields, body);
 
-                                    // Prepare response
-                                    SocketAddress r_address = new InetSocketAddress("localhost", 3000);
-                                    InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
-                                    Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
-                                    sendto(r_address,response_p);
+                                    System.out.println("-------------------------");
+                                    System.out.println("SEND THIS RESPONSE TO CLIENT");
+                                    System.out.println("===========");
+
+                                    // Send the response to the router not the client.
+                                    // The peer address of the packet is the address of the client already.
+                                    // We can use toBuilder to copy properties of the current packet.
+                                    // This demonstrate how to create a new packet from an existing packet.
+                                    Packet p = new Packet(0,1,packet.get_address(),packet.get_port(),response.getBytes());
+                                    channel.send(p.to_buffer(), router);
                                     break;
 
 
@@ -220,11 +256,16 @@ public class  httpfs {
                                     // prepare response
                                     response = responseString(version, httpCode, httpMessage, headerFields, body);
 
-                                    // Prepare response
-                                    SocketAddress r_address = new InetSocketAddress("localhost", 3000);
-                                    InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
-                                    Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
-                                    sendto(r_address,response_p);
+                                    System.out.println("-------------------------");
+                                    System.out.println("SEND THIS RESPONSE TO CLIENT");
+                                    System.out.println("===========");
+
+                                    // Send the response to the router not the client.
+                                    // The peer address of the packet is the address of the client already.
+                                    // We can use toBuilder to copy properties of the current packet.
+                                    // This demonstrate how to create a new packet from an existing packet.
+                                    Packet p = new Packet(0,1,packet.get_address(),packet.get_port(),response.getBytes());
+                                    channel.send(p.to_buffer(), router);
                                     break;
 
                                 }
@@ -248,17 +289,20 @@ public class  httpfs {
                                 // prepare response
                                 response = responseString(version, httpCode, httpMessage, headerFields, body);
 
-                                // Prepare response
-                                SocketAddress r_address = new InetSocketAddress("localhost", 3000);
-                                InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
-                                Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
-                                sendto(r_address,response_p);
+                                System.out.println("-------------------------");
+                                System.out.println("SEND THIS RESPONSE TO CLIENT");
+                                System.out.println("===========");
+
+                                // Send the response to the router not the client.
+                                // The peer address of the packet is the address of the client already.
+                                // We can use toBuilder to copy properties of the current packet.
+                                // This demonstrate how to create a new packet from an existing packet.
+                                Packet p = new Packet(0,1,packet.get_address(),packet.get_port(),response.getBytes());
+                                channel.send(p.to_buffer(), router);
                                 break;
 
                             }
                         }
-
-
 
                         //Check if the file exists
                         if(file.exists() || absolutePath.equals("")){
@@ -311,16 +355,22 @@ public class  httpfs {
                                 // prepare response
                                 response = responseString(version, httpCode, httpMessage, headerFields, body);
 
-                                // Prepare response
-                                SocketAddress r_address = new InetSocketAddress("localhost", 3000);
-                                InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
-                                Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
-                                sendto(r_address,response_p);
+                                System.out.println("-------------------------");
+                                System.out.println("SEND THIS RESPONSE TO CLIENT");
+                                System.out.println("===========");
+
+                                // Send the response to the router not the client.
+                                // The peer address of the packet is the address of the client already.
+                                // We can use toBuilder to copy properties of the current packet.
+                                // This demonstrate how to create a new packet from an existing packet.
+                                Packet p = new Packet(0,1,packet.get_address(),packet.get_port(),response.getBytes());
+                                channel.send(p.to_buffer(), router);
                                 break;
                             }
 
                             // 2. 404 Not Found file doesn't exist
-                        }else{
+                        }
+                        else{
 
                             body = "";
 
@@ -335,11 +385,17 @@ public class  httpfs {
                             // prepare response
                             response = responseString(version, httpCode, httpMessage, headerFields, body);
 
-                            // Prepare response
-                            SocketAddress r_address = new InetSocketAddress("localhost", 3000);
-                            InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
-                            Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
-                            sendto(r_address,response_p);
+                            System.out.println("-------------------------");
+                            System.out.println("SEND THIS RESPONSE TO CLIENT");
+                            System.out.println("===========");
+
+                            // Send the response to the router not the client.
+                            // The peer address of the packet is the address of the client already.
+                            // We can use toBuilder to copy properties of the current packet.
+                            // This demonstrate how to create a new packet from an existing packet.
+                            Packet p = new Packet(0,1,packet.get_address(),packet.get_port(),response.getBytes());
+                            channel.send(p.to_buffer(), router);
+
                             break;
                         }
 
@@ -348,12 +404,26 @@ public class  httpfs {
 
                 }
 
+//                // IF SHIT WONT SEND THEN SEND THIS
+//
+//                System.out.println("-------------------------");
+//                System.out.println("SEND THIS RESPONSE TO CLIENT");
+//                System.out.println("===========");
+//
+//                response = " WHAT THE FUCK";
+//
+//                // Send the response to the router not the client.
+//                // The peer address of the packet is the address of the client already.
+//                // We can use toBuilder to copy properties of the current packet.
+//                // This demonstrate how to create a new packet from an existing packet.
+//                Packet p = new Packet(0,1,packet.get_address(),packet.get_port(),response.getBytes());
+//                channel.send(p.to_buffer(), router);
             }
 
-            //////HERE
         }
 
     }
+
 
     // Returns the inline data to be sent from the input arguments or an empty string
     public static String file_to_string(File file) throws FileNotFoundException {
@@ -508,6 +578,7 @@ public class  httpfs {
         }
 
     }
+
     public static void sendto (SocketAddress router, Packet p){
         try( DatagramChannel channel = DatagramChannel.open() ){
             channel.send(p.to_buffer(), router);

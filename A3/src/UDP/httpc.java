@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -234,9 +235,9 @@ public class httpc {
         SocketAddress r_address = new InetSocketAddress("localhost", 3000);
         InetSocketAddress s_address = new InetSocketAddress("localhost", port);
 
-        //System.out.println("Payload: "+payload+"\n");
+        // Create a datagram packet
         Packet p = new Packet(0,0,s_address.getAddress(),s_address.getPort(),payload.getBytes());
-        System.out.println("Sent: "+p+"\n");
+        // Send Datagram via UDP
         runUDPclient(r_address,p);
     }
 
@@ -298,55 +299,67 @@ public class httpc {
     public static Packet runUDPclient(SocketAddress router, Packet p){
         try( DatagramChannel channel = DatagramChannel.open() ){
 
+            System.out.println("runUDPclient function");
+            System.out.println("----------------------------------------------------");
+            System.out.println("SENDING THIS REQUEST");
+            System.out.println("===========");
+            System.out.println(new String(p.get_payload()) + "\n\nto router at {} " + router );
+
+            // ** -------------------------- **
+            // ** --------- REQUEST -------- **
+            // ** -------------------------- **
+
+            // send request
             channel.send(p.to_buffer(), router);
 
-            // Receive packet within timeout.
+            // ** -------------------------- **
+            // ** --------- TIMEOUT -------- **
+            // ** -------------------------- **
+
+            // Try to receive a packet within timeout.
             channel.configureBlocking(false);
             Selector selector = Selector.open();
             channel.register(selector, OP_READ);
-            selector.select(10000);
+            selector.select(5000);
 
             Set<SelectionKey> keys = selector.selectedKeys();
             if(keys.isEmpty()){
+                System.out.println();
+                System.out.println("No response =====");
                 return null;
             }
 
 
-            int client_port = 41830;
+            System.out.println();
+            System.out.println("waiting for server ...");
+            System.out.println();
 
-            Packet arrived = httpfs.recvfrom(client_port);
-            // Get a single response.
+            // ** -------------------------- **
+            // ** -------- RESPONSE -------- **
+            // ** -------------------------- **
+
+            System.out.println("RECEIVING THIS RESPONSE");
+            System.out.println("===========");
+            // We just want a single response.
             ByteBuffer buf = ByteBuffer.allocate(Packet.MAX_SIZE);
-            SocketAddress route = channel.receive(buf);
+            router = channel.receive(buf);
             buf.flip();
-
-            Packet received;
-
-            if (buf.limit() < UDP.Packet.MIN_SIZE || buf.limit() > Packet.MAX_SIZE) {
-                throw new IOException("Invalid packet length");
-            }
-            else{
-                int typ = Byte.toUnsignedInt(buf.get());
-                long seq = Integer.toUnsignedLong(buf.getInt());
-                byte[] host = new byte[]{ buf.get(), buf.get(), buf.get(), buf.get() };
-                InetAddress addr = InetAddress.getByAddress(host);
-                int port = Short.toUnsignedInt(buf.getShort());
-                byte[] payld = new byte[buf.remaining()];
-
-                received = new Packet(typ, seq,addr,port,payld);
-            }
-
-//            System.out.println(received);
+            Packet resp = Packet.from_buffer(buf);
+            System.out.println("Packet: " + resp);
+            System.out.println("Router: " + router);
+            String payload = new String(resp.get_payload(), StandardCharsets.UTF_8);
+            System.out.println("Payload: " + payload);
 
             keys.clear();
-            return received;
+
+            return resp;
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         return null;
     }
-
 
     public static void main(String[] args) {
         // Space out message
