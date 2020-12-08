@@ -1,17 +1,19 @@
 package UDP;
 import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketAddress;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
+
+import static java.nio.channels.SelectionKey.OP_READ;
 
 public class  httpfs {
 
@@ -82,109 +84,156 @@ public class  httpfs {
 
             ////    NEW
             Packet arrived = recvfrom(port_number);
-            System.out.println(arrived);
+            String arr[] = arrived.toString().split("\n");
 
-            Socket clientSocket = serverSocket.accept(); // accept the connection when client requests the socket
-            clientSocket.setKeepAlive(true);
+            //int client_port = 41830;
 
-
-            BufferedReader incoming = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-
-            // Data input from client
-            //Scanner in = new Scanner(clientSocket.getInputStream());
-            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            // Data output to client
-            DataOutputStream out = new DataOutputStream( clientSocket.getOutputStream() );
-
-            // Request received by HTTPc
-            String request = "";
-            // Knowing line number to split the file name from line #1
-            int lineNumber = 0;
-
-            // Variables for request
-            boolean request_doc = false;
-            String method = "";
-            String fileName = "";
-            String path = "";
-
-            boolean done_receiving = false;
-
-            int body_length = 0;
-            // RUN SERVER
-            String line = in.readLine();
-
-            while (line != null) {
-                // -------- START OF REQUEST
-                lineNumber++; // Increase Line #
-
-                // Print request to server
-                if (verbose_flag)
-                    System.out.println(lineNumber + "#: " + line); // <!---- checks line # on console
-
-                // if its the first line, grab the filename
-                if(lineNumber == 1){
-                    method = line.split(" ")[0].toLowerCase(); // GET||POST
-                    path = line.split(" ")[1]; // requested directory or file
-
-                    if ( path.endsWith(".txt") )
-                        request_doc = true; // flag to check if request for document or directory
-
-                    absolutePath += line.split(" ")[1].substring(1); // requested directory
-                }
-
-                if(line.startsWith("Content-Length:"))
-                    body_length = Integer.parseInt(line.substring(15));
+            for (int i=0; i<arr.length; i++) {
+                String request = arr[i];
+                System.out.println(arr[i]);
 
 
-                // ---------- END OF REQUEST
-                if(line.equals("")){
-                    // ---------- START OF RESPONSE
+                // Request received by HTTPc
+                //String request = "";
+                // Knowing line number to split the file name from line #1
+                int lineNumber = 0;
 
-                    File file = new File(absolutePath);
+                // Variables for request
+                boolean request_doc = false;
+                String method = "";
+                String fileName = "";
+                String path = "";
 
-                    /*          --- Get Cases ---
-                        Directories:  "/" or "/dir" or "/dir/dir"
-                            Empty request:
-                                Show all files and directories in absolute path or error
-                            Specific directory with no file:
-                                Show all files in specific directory or error
-                        Files: "/File.txt" or "/dir/File.txt" or "/dir/dir/File.txt"
-                            File with no path:
-                                Send back file or error
-                            File with path:
-                                Send back file or error
-                     */
+                boolean done_receiving = false;
 
-                    if(method.equals("post")) {
+                int body_length = 0;
+                // RUN SERVER
+                String line = request;
 
-                        char[] data = new char[body_length];
+                while (line != null) {
+                    // -------- START OF REQUEST
+                    lineNumber++; // Increase Line #
 
-                        if (body_length > 0){
-                            lineNumber++;
-                            in.read(data,0,data.length);
-                            System.out.println(lineNumber + "#: " + String.valueOf(data));
-                        }
+                    // Print request to server
+                    if (verbose_flag)
+                        System.out.println(lineNumber + "#: " + line); // <!---- checks line # on console
+
+                    // if its the first line, grab the filename
+                    if(lineNumber == 1){
+                        method = line.split(" ")[0].toLowerCase(); // GET||POST
+                        path = line.split(" ")[1]; // requested directory or file
+
+                        if ( path.endsWith(".txt") )
+                            request_doc = true; // flag to check if request for document or directory
+
+                        absolutePath += line.split(" ")[1].substring(1); // requested directory
+                    }
+
+                    if(line.startsWith("Content-Length:"))
+                        body_length = Integer.parseInt(line.substring(15));
 
 
-                        boolean success = false;
-                        String dir = absolutePath;
+                    // ---------- END OF REQUEST
+                    if(line.equals("")){
+                        // ---------- START OF RESPONSE
 
-                        if (file.exists()) {
+                        File file = new File(absolutePath);
 
-                            if (request_doc){
-                                body = "File Modified";
-                                file.delete();
-                                File new_file = new File(absolutePath);
-                                String source = String.valueOf(data);
-                                try {
-                                    FileWriter f2 = new FileWriter(new_file, false);
-                                    f2.write(source);
-                                    f2.close();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
+                        /*          --- Get Cases ---
+                            Directories:  "/" or "/dir" or "/dir/dir"
+                                Empty request:
+                                    Show all files and directories in absolute path or error
+                                Specific directory with no file:
+                                    Show all files in specific directory or error
+                            Files: "/File.txt" or "/dir/File.txt" or "/dir/dir/File.txt"
+                                File with no path:
+                                    Send back file or error
+                                File with path:
+                                    Send back file or error
+                         */
+
+                        if(method.equals("post")) {
+
+                            char[] data = new char[body_length];
+
+                            if (body_length > 0){
+                                lineNumber++;
+                                in.read(data,0,data.length);
+                                System.out.println(lineNumber + "#: " + String.valueOf(data));
+                            }
+
+
+                            boolean success = false;
+                            String dir = absolutePath;
+
+                            if (file.exists()) {
+
+                                if (request_doc){
+                                    body = "File Modified";
+                                    file.delete();
+                                    File new_file = new File(absolutePath);
+                                    String source = String.valueOf(data);
+                                    try {
+                                        FileWriter f2 = new FileWriter(new_file, false);
+                                        f2.write(source);
+                                        f2.close();
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+
+                                    // 200 OK file or directory is modified
+
+                                    // status code
+                                    String httpCode = HttpStatusCode.OK.getCode();
+                                    String httpMessage = HttpStatusCode.OK.getMessage();
+
+                                    // Prepare header
+                                    headerFields = new HashMap<String, String>();
+                                    headerFields.put("User-Agent", "Concordia");
+                                    headerFields.put("Content-Type", "text/html");
+                                    headerFields.put("Content-Length", Integer.toString(body.length()));
+
+                                    // prepare response
+                                    response = responseString(version, httpCode, httpMessage, headerFields, body);
+
+                                    // Prepare response
+                                    SocketAddress r_address = new InetSocketAddress("localhost", 3000);
+                                    InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
+                                    Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
+                                    sendto(r_address,response_p);
+                                    break;
+
+
                                 }
+                                else{
+                                    // 403 Forbidden action
+                                    body = "Directory already exists";
 
-                                // 200 OK file or directory is modified
+                                    // status code
+                                    String httpCode = HttpStatusCode.FORBIDDEN.getCode();
+                                    String httpMessage = HttpStatusCode.FORBIDDEN.getMessage();
+
+                                    // Prepare header
+                                    headerFields = new HashMap<String, String>();
+                                    headerFields.put("User-Agent", "Concordia");
+
+                                    // prepare response
+                                    response = responseString(version, httpCode, httpMessage, headerFields, body);
+
+                                    // Prepare response
+                                    SocketAddress r_address = new InetSocketAddress("localhost", 3000);
+                                    InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
+                                    Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
+                                    sendto(r_address,response_p);
+                                    break;
+
+                                }
+                            }
+                            else { // Creates the directory or nested directories
+                                body = " \tCreated "+dir;
+
+                                create_dir(dir, String.valueOf(data));
+                                // 200 OK file or directory is created
 
                                 // status code
                                 String httpCode = HttpStatusCode.OK.getCode();
@@ -200,16 +249,56 @@ public class  httpfs {
                                 response = responseString(version, httpCode, httpMessage, headerFields, body);
 
                                 // Prepare response
-                                out.writeBytes(response);
-                                out.flush();
-                                out.close(); // close stream to finish it off
+                                SocketAddress r_address = new InetSocketAddress("localhost", 3000);
+                                InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
+                                Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
+                                sendto(r_address,response_p);
                                 break;
 
-
                             }
-                            else{
-                                // 403 Forbidden action
-                                body = "Directory already exists";
+                        }
+
+
+
+                        //Check if the file exists
+                        if(file.exists() || absolutePath.equals("")){
+
+                            // sudo chmod 666 hello.txt - can read
+                            if(file.canRead()) {
+                                if ( method.equals("get") && request_doc)
+                                    // transform the file to a string
+                                    body = file_to_string(file);
+                                if ( method.equals("get") && !request_doc)
+                                    // transform the file to a string
+                                    body = get_files(file);
+
+                                // 1. 200 OK file exists and its readable
+
+                                // status code
+                                String httpCode = HttpStatusCode.OK.getCode();
+                                String httpMessage = HttpStatusCode.OK.getMessage();
+
+                                // Prepare header
+                                headerFields = new HashMap<String, String>();
+                                headerFields.put("User-Agent", "Concordia");
+                                headerFields.put("Content-Type", "text/html");
+                                headerFields.put("Content-Length", Integer.toString(body.length()));
+
+                                // prepare response
+                                response = responseString(version, httpCode, httpMessage, headerFields, body);
+
+                                // Prepare response
+                                SocketAddress r_address = new InetSocketAddress("localhost", 3000);
+                                InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
+                                Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
+                                sendto(r_address,response_p);
+                                break;
+
+                                // sudo chmod 600 hello.txt - cannot read
+                            }else{
+                                // 3. 403 Forbidden file is not readable
+
+                                body = "";
 
                                 // status code
                                 String httpCode = HttpStatusCode.FORBIDDEN.getCode();
@@ -223,85 +312,21 @@ public class  httpfs {
                                 response = responseString(version, httpCode, httpMessage, headerFields, body);
 
                                 // Prepare response
-                                out.writeBytes(response);
-                                out.flush();
-                                out.close(); // close stream to finish it off
+                                SocketAddress r_address = new InetSocketAddress("localhost", 3000);
+                                InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
+                                Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
+                                sendto(r_address,response_p);
                                 break;
-
                             }
-                        }
-                        else { // Creates the directory or nested directories
-                            body = " \tCreated "+dir;
 
-                            create_dir(dir, String.valueOf(data));
-                            // 200 OK file or directory is created
-
-                            // status code
-                            String httpCode = HttpStatusCode.OK.getCode();
-                            String httpMessage = HttpStatusCode.OK.getMessage();
-
-                            // Prepare header
-                            headerFields = new HashMap<String, String>();
-                            headerFields.put("User-Agent", "Concordia");
-                            headerFields.put("Content-Type", "text/html");
-                            headerFields.put("Content-Length", Integer.toString(body.length()));
-
-                            // prepare response
-                            response = responseString(version, httpCode, httpMessage, headerFields, body);
-
-                            // Prepare response
-                            out.writeBytes(response);
-                            out.flush();
-                            out.close(); // close stream to finish it off
-                            break;
-
-                        }
-                    }
-
-
-
-                    //Check if the file exists
-                    if(file.exists() || absolutePath.equals("")){
-
-                        // sudo chmod 666 hello.txt - can read
-                        if(file.canRead()) {
-                            if ( method.equals("get") && request_doc)
-                                // transform the file to a string
-                                body = file_to_string(file);
-                            if ( method.equals("get") && !request_doc)
-                                // transform the file to a string
-                                body = get_files(file);
-
-                            // 1. 200 OK file exists and its readable
-
-                            // status code
-                            String httpCode = HttpStatusCode.OK.getCode();
-                            String httpMessage = HttpStatusCode.OK.getMessage();
-
-                            // Prepare header
-                            headerFields = new HashMap<String, String>();
-                            headerFields.put("User-Agent", "Concordia");
-                            headerFields.put("Content-Type", "text/html");
-                            headerFields.put("Content-Length", Integer.toString(body.length()));
-
-                            // prepare response
-                            response = responseString(version, httpCode, httpMessage, headerFields, body);
-
-                            // Prepare response
-                            out.writeBytes(response);
-                            out.flush();
-                            out.close(); // close stream to finish it off
-                            break;
-
-                            // sudo chmod 600 hello.txt - cannot read
+                            // 2. 404 Not Found file doesn't exist
                         }else{
-                            // 3. 403 Forbidden file is not readable
 
                             body = "";
 
                             // status code
-                            String httpCode = HttpStatusCode.FORBIDDEN.getCode();
-                            String httpMessage = HttpStatusCode.FORBIDDEN.getMessage();
+                            String httpCode = HttpStatusCode.NOTFOUND.getCode();
+                            String httpMessage = HttpStatusCode.NOTFOUND.getMessage();
 
                             // Prepare header
                             headerFields = new HashMap<String, String>();
@@ -311,40 +336,21 @@ public class  httpfs {
                             response = responseString(version, httpCode, httpMessage, headerFields, body);
 
                             // Prepare response
-                            out.writeBytes(response);
-                            out.flush();
-                            out.close(); // close stream to finish it off
+                            SocketAddress r_address = new InetSocketAddress("localhost", 3000);
+                            InetSocketAddress h_address = new InetSocketAddress("localhost", 41830);
+                            Packet response_p = new Packet(0,1, h_address.getAddress(),h_address.getPort(), response.getBytes());
+                            sendto(r_address,response_p);
                             break;
                         }
 
-                        // 2. 404 Not Found file doesn't exist
-                    }else{
-
-                        body = "";
-
-                        // status code
-                        String httpCode = HttpStatusCode.NOTFOUND.getCode();
-                        String httpMessage = HttpStatusCode.NOTFOUND.getMessage();
-
-                        // Prepare header
-                        headerFields = new HashMap<String, String>();
-                        headerFields.put("User-Agent", "Concordia");
-
-                        // prepare response
-                        response = responseString(version, httpCode, httpMessage, headerFields, body);
-
-                        // Prepare response
-                        out.writeBytes(response);
-                        out.flush();
-                        out.close(); // close stream to finish it off
-                        break;
+                        // ---------- END OF RESPONSE
                     }
 
-                    // ---------- END OF RESPONSE
                 }
 
-                line = in.readLine();
             }
+
+            //////HERE
         }
 
     }
@@ -477,7 +483,7 @@ public class  httpfs {
 
     ////    NEW
     //
-    private static Packet recvfrom (int port){
+    public static Packet recvfrom (int port){
 
         try (DatagramChannel channel = DatagramChannel.open()) {
             channel.bind(new InetSocketAddress(port));
@@ -490,8 +496,10 @@ public class  httpfs {
 
                 Packet packet = Packet.from_buffer(buffer);
                 buffer.flip();
+                if( buffer != null){
 
-                return packet;
+                    return packet;
+                }
             }
 
         } catch (IOException e) {
@@ -500,6 +508,16 @@ public class  httpfs {
         }
 
     }
+    public static void sendto (SocketAddress router, Packet p){
+        try( DatagramChannel channel = DatagramChannel.open() ){
+            channel.send(p.to_buffer(), router);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
 
     // ----------------------------------------------------------------------
     // ------------------------------- ARGS ---------------------------------

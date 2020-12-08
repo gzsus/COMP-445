@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 public class Packet {
 
@@ -59,7 +60,7 @@ public class Packet {
 
     //  Convert packet to a Buffer
     public ByteBuffer to_buffer() {
-        ByteBuffer buf = ByteBuffer.allocate(MIN_SIZE).order(ByteOrder.BIG_ENDIAN);
+        ByteBuffer buf = ByteBuffer.allocate(MAX_SIZE).order(ByteOrder.BIG_ENDIAN);
 
         buf.put((byte) type);
         buf.putInt((int) sequence);
@@ -87,13 +88,13 @@ public class Packet {
 
         Packet packet = new Packet(typ, seq,addr,peer_port,payld);
 
-        return null;
+        return packet;
     }
 
 
     @Override
     public String toString() {
-        return String.format("#%d peer=%s:%d, size=%d\t%s", sequence, dest_address, dest_port, payload.length, payload);
+        return String.format("#%d peer=%s:%d, size=%d\t%s", sequence, dest_address, dest_port, payload.length, new String (payload) );
     }
 
 }

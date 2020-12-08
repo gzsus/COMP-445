@@ -234,10 +234,10 @@ public class httpc {
         SocketAddress r_address = new InetSocketAddress("localhost", 3000);
         InetSocketAddress s_address = new InetSocketAddress("localhost", port);
 
-        System.out.println("Payload: "+payload+"\n");
+        //System.out.println("Payload: "+payload+"\n");
         Packet p = new Packet(0,0,s_address.getAddress(),s_address.getPort(),payload.getBytes());
         System.out.println("Sent: "+p+"\n");
-        runUDPclient(r_address,s_address,p);
+        runUDPclient(r_address,p);
     }
 
 //        // Get the IP of the given site
@@ -295,7 +295,7 @@ public class httpc {
 
     ////    NEW
     //  Send a given Packet using UDP
-    public static Packet runUDPclient(SocketAddress router, InetSocketAddress server, Packet p){
+    public static Packet runUDPclient(SocketAddress router, Packet p){
         try( DatagramChannel channel = DatagramChannel.open() ){
 
             channel.send(p.to_buffer(), router);
@@ -311,6 +311,10 @@ public class httpc {
                 return null;
             }
 
+
+            int client_port = 41830;
+
+            Packet arrived = httpfs.recvfrom(client_port);
             // Get a single response.
             ByteBuffer buf = ByteBuffer.allocate(Packet.MAX_SIZE);
             SocketAddress route = channel.receive(buf);
